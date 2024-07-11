@@ -1,7 +1,7 @@
 # Fetch your resume  from resume.io 
 
-Strictly  or  educational purposes.
+Strictly  for  educational purposes.
 ```
-am  just   a some nerd.
-Use  it to secure don't sue  me 😂.
+I am  just   a nerd.
+Use  it to secure don't sue  me.😂.
 ```
