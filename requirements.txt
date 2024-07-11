@@ -5,3 +5,4 @@ dataclasses==0.6
 pytesseract==0.3.10
 pillow==10.4.0
 pypdf==4.1.0
+hydralit_components
