@@ -7,7 +7,7 @@ For  downloading your the  resume only the  `renderToken` is  needed.
 Resume  is  exported as a pdf file.
 
 Good  luck in your  job search.
-Application link (Here)[https://resumeio2pdfdownload.streamlit.app]
+Application link [Here](https://resumeio2pdfdownload.streamlit.app)
 Strictly  for  educational purposes.
 ```
 I am  just   a nerd.
