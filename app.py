@@ -123,9 +123,10 @@ style = {
     },
 }
 options = {
-    "show_menu": True,
+    "show_menu": False,
     "show_sidebar": False,
     "use_padding": False
+    
 }
 page = st_navbar(pages, styles=style, options=options, key="selected")
 if page =="Home":
