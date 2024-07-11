@@ -1,0 +1,7 @@
+#streamlit
+streamlit_navigation_bar==3.3.0
+streamlit_extras==0.3.6
+dataclasses==0.6
+pytesseract==0.3.10
+pillow==10.4.0
+pypdf==4.1.0
