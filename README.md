@@ -1,5 +1,5 @@
 # Fetch your resume  from resume.io 
-Create and  design  your  resume  in   resume.io. 
+Could you create and design your resume in resume.io? 
 
 This  app comes  in  handy  when  downloading  your  resume. 
 
@@ -13,5 +13,5 @@ I am  just   a nerd.
 You can use it to secure your  dream job.  Please don't sue  me😂.
 ```
 Special thanks  [to](https://github.com/felipeall) for some  of  the  logic in the  code.
-
+Leave a star. 
 Good  luck in your  job hunting.
