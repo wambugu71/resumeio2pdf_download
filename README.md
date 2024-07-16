@@ -15,5 +15,5 @@ You can use it to secure your  dream job.  Please don't sue  me😂.
 Leave a star.
 ```
 Special thanks  [to](https://github.com/felipeall) for some  of  the  logic in the  code.
-[Buy Me  a Coffee](https://buymeacoffee.com/wambugu)
+[![Buy Me a Coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://buymeacoffee.com/wambugu)
 Good  luck in your  job hunting.
