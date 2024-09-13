@@ -12,7 +12,7 @@ Strictly  for  educational purposes.
 I am  just   a nerd.
 You can use it to secure your  dream job.  Please don't sue  me😂.
 
-Leave a star.
+Please Leave a star.
 ```
 Special thanks  [to](https://github.com/felipeall) for some  of  the  logic in the  code.
 
