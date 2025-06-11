@@ -252,7 +252,8 @@ if  page == "Download Resume":
     }
     </style>
     """, unsafe_allow_html=True)
-        except:
+        except  Exception as e:
+            print("Error occured: {}".format(e))
             st.error("Please check if `renderToken` is  correct", icon=":material/warning:")
             st.toast("Please check if  `renderToken` is  correct", icon=":material/error:")
 if  page == "About":
