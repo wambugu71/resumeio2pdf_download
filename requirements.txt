@@ -7,4 +7,5 @@ pillow==10.4.0
 pypdf==4.1.0
 numpy==1.26.4
 hydralit_components
-streamlit==1.35.0
+fastapi
+streamlit==1.35.0 
