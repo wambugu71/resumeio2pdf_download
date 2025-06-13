@@ -397,17 +397,3 @@ class ApplicationRunner:
         except Exception as unexpected_error:
             print(f"Unexpected Error: {unexpected_error}")
 
-
-def initialize_and_run_application():
-    """Entry point function to initialize and run the application."""
-    app_runner = ApplicationRunner()
-    
-    # Configuration
-    document_token = "kuheXCCgfxrtJpkQL5KteJuC"
-    output_file_path = "advanced_processed_document.pdf"
-    bytes_doc =  app_runner.execute_document_conversion(document_token)
-    print(bytes_doc)
-
-
-if __name__ == "__main__":
-    initialize_and_run_application()
