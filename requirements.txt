@@ -8,4 +8,4 @@ pypdf==4.1.0
 numpy==1.26.4
 hydralit_components
 fastapi
-streamlit==1.35.0
+streamlit==1.35.0 
