@@ -1,3 +1,7 @@
+__Notice:__
+
+> We have  migrated  from [[https://resumeio2pdfdownload.streamlit.app](Streamlit) to [https://wambugu71.github.io/resumeio2pdf_download/](Self Hosted), since  streamlit  servers  have  been having  issues of late. 
+__Remember__:  `to support  me  below, for  us  to keep the  server running.`
 # Fetch your resume  from resume.io 
 Could you create and design your resume in resume.io? 
 
@@ -6,7 +10,7 @@ This  app comes  in  handy  when  downloading  your  resume.
 For  downloading your resume only the  `renderToken` is  needed.
 Resume  is  exported as a pdf file.
 
-Application link [Here](https://resumeio2pdfdownload.streamlit.app)
+Application link [Here](https://wambugu71.github.io/resumeio2pdf_download/)
 Strictly  for  educational purposes.
 ```
 I am  just   a nerd.
