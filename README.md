@@ -1,6 +1,6 @@
 __Notice:__
 
-> We have  migrated  from (Streamlit)[https://resumeio2pdfdownload.streamlit.app] to (Self Hosted)[https://wambugu71.github.io/resumeio2pdf_download/], since  streamlit  servers  have  been having  issues of late. 
+> We have  migrated  from [Streamlit](https://resumeio2pdfdownload.streamlit.app) to [Self Hosted](https://wambugu71.github.io/resumeio2pdf_download/), since  streamlit  servers  have  been having  issues of late. 
 __Remember__:  `to support  me  below, for  us  to keep the  server running.`
 # Fetch your resume  from resume.io 
 Could you create and design your resume in resume.io? 
