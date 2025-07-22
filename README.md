@@ -3,7 +3,7 @@ __Notice:__
 > We have  migrated  from [Streamlit](https://resumeio2pdfdownload.streamlit.app) to [Self Hosted](www.resumegenn.site), since  streamlit  servers  have  been having  issues of late.
 
 
-__Remember__:  `to support` [![Buy Me a Coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://buymeacoffee.com/wambugu), `for  us  to keep the  server running.`
+__Remember__:  `to support` [![Buy Me a Coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://buymeacoffee.com/wambugu), `for  us  to keep the  servers running.`
 # Fetch your resume  from resume.io 
 Could you create and design your resume in resume.io? 
 
