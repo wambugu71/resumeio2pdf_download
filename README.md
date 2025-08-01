@@ -2,6 +2,7 @@ __Notice:__
 
 > We have  migrated  from [Streamlit](https://resumeio2pdfdownload.streamlit.app) to [Self Hosted](www.resumegenn.site), since  streamlit  servers  have  been having  issues of late.
 
+> __Before  using  this make sure  you  support  resumeio  first. This is  for  educational purposes.__
 
 __Remember__:  `to support` [![Buy Me a Coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://buymeacoffee.com/wambugu) or [![PayPal](https://img.shields.io/badge/Pay%20Now-FFD140?logo=paypal&logoColor=000&style=for-the-badge)](https://www.paypal.com/ncp/payment/664ZL5XX3TKMG), `for  us  to keep the  servers running.`
 # Fetch your resume  from resume.io 
