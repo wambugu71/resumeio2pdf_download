@@ -23,5 +23,14 @@ Leave a star.
 ```
 [![Buy Me a Coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://buymeacoffee.com/wambugu)
 
+---
+## 🌟 Star History
 
+<div align="center">
+  <a href="https://github.com/wambugu71/resumeio2pdf_download/stargazers">
+    <img src="https://api.star-history.com/svg?repos=wambugu71/resumeio2pdf_download&type=Date" alt="Star History Chart"/>
+  </a>
+</div>
+
+---
 Good  luck in your  job hunting.
