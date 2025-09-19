@@ -229,8 +229,8 @@ if _PDFENGINE_IMPORT_ERROR:
 
 st.title("📄 Resume PDF Generator (Streamlit UI)")
 st.caption("Open-source interface for converting resume tokens to PDFs.")
-with st.expander(" [Get Your render token](https://resume.io/api/app/resumes) `See more`"):
-    st.markdown("""Copy the value `renderingToken` youll see the example page with: 
+with st.expander("[Get the render token](https://resume.io/api/app/resumes) `See more`"):
+    st.markdown("""[Get render token here](https://resume.io/api/app/resumes) Copy the value `renderingToken` youll see the example page with: 
 ```{
   "resumes": [
     {
@@ -373,6 +373,7 @@ with st.expander("Recent Runs (Session)"):
         st.dataframe(df_session, use_container_width=True, hide_index=True)
 
 st.caption("Tip: identical parameter combinations reuse cached results. Use the 'Settings & Cache' expander above to clear cache.")
+
 
 
 
