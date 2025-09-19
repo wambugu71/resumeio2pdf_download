@@ -235,9 +235,9 @@ with st.expander("[Get the render token](https://resume.io/api/app/resumes) `See
   "resumes": [
     {
       "type": "resume",
-      "displayName": "Wambugu Resume",
+      "displayName": "<your-name> Resume",
       "downloadTXTUrl": "/api/app/resumes/43743355/txt-download",
-      "renderingToken": "xxxxxxxxJpkQL5KteJuC",
+      "renderingToken": "xxxxxxxxJpkQL5KteJuC#⬅️⬅️⬅️Copy this value thats the render token"
       "updatedAt": "2025-xxxxx,
       ...
     }
@@ -373,6 +373,7 @@ with st.expander("Recent Runs (Session)"):
         st.dataframe(df_session, use_container_width=True, hide_index=True)
 
 st.caption("Tip: identical parameter combinations reuse cached results. Use the 'Settings & Cache' expander above to clear cache.")
+
 
 
 
