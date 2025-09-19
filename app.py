@@ -9,14 +9,35 @@ from typing import Optional, Dict, Any
 import streamlit as st
 import humanize
 
-from pdfengine.pdfgenerator import (
-    ApplicationRunner,
-    SupportedImageFormats,
-    DocumentSpecification,
-    DocumentValidationError,
-    ProcessingError,
-    NetworkError
-)
+try:
+    from pdfengine.pdfgenerator import (
+        ApplicationRunner,
+        SupportedImageFormats,
+        DocumentValidationError,
+        ProcessingError,
+        NetworkError,
+        ServiceConfiguration,
+        DocumentSpecification,
+        TimestampGenerator,
+        HttpRequestExecutor,
+        UrlBuilder,
+        DocumentMetadataProcessor,
+        RemoteDocumentFetcher,
+        ImageToPdfConverter,
+        LinkAnnotationBuilder,
+        PdfDocumentAssembler
+    )
+except Exception as import_error:  # surface nicely in UI
+    ApplicationRunner = None  # type: ignore
+    SupportedImageFormats = None  # type: ignore
+    DocumentValidationError = Exception  # fallback
+    ProcessingError = Exception  # fallback
+    NetworkError = Exception  # fallback
+    ServiceConfiguration = None  # type: ignore
+    DocumentSpecification = None  # type: ignore
+    _PDFENGINE_IMPORT_ERROR = import_error
+else:
+    _PDFENGINE_IMPORT_ERROR = None
 
 # -----------------------------
 # Capability / Environment Detection
@@ -77,13 +98,57 @@ def cached_generate_pdf(token: str, resolution: int, fmt: str, enable_ocr: bool,
     return pdf_bytes
 
 # -----------------------------
+# Progress-enabled generation (page-level updates)
+# -----------------------------
+
+def generate_with_progress(token: str, resolution: int, fmt: str, enable_ocr: bool, preserve_links: bool, progress_cb):
+    if ServiceConfiguration is None:
+        raise ProcessingError("ServiceConfiguration unavailable (import failed)")
+    spec = DocumentSpecification(
+        access_token=token,
+        output_format=SupportedImageFormats(fmt),
+        image_resolution=resolution,
+        enable_ocr=enable_ocr,
+        preserve_links=preserve_links
+    )
+    service_conf = ServiceConfiguration()
+    timestamp_gen = TimestampGenerator()
+    http_client = HttpRequestExecutor(service_conf)
+    url_builder = UrlBuilder(service_conf)
+    metadata_proc = DocumentMetadataProcessor()
+    image_converter = ImageToPdfConverter(enable_ocr=enable_ocr)
+    link_builder = LinkAnnotationBuilder()
+    fetcher = RemoteDocumentFetcher(http_client, url_builder, service_conf)
+    assembler = PdfDocumentAssembler(image_converter, link_builder)
+    try:
+        progress_cb(0.01, "Fetching metadata…")
+        ts = timestamp_gen.get_current_utc_timestamp()
+        raw_metadata = fetcher.fetch_document_metadata(spec, ts)
+        page_info = metadata_proc.extract_page_info(raw_metadata)
+        total_pages = len(page_info)
+        if total_pages == 0:
+            raise DocumentValidationError("No pages found")
+        images = []
+        for idx in range(1, total_pages + 1):
+            progress_cb(0.05 + 0.80 * ((idx - 1) / total_pages), f"Fetching page {idx}/{total_pages}…")
+            img_buf = fetcher.fetch_page_image(spec, idx, ts)
+            images.append(img_buf)
+        progress_cb(0.90, "Assembling PDF…")
+        pdf_bytes = assembler.assemble_document(images, page_info)
+        progress_cb(1.0, "Done")
+        return pdf_bytes
+    except Exception:
+        progress_cb(1.0, "Failed")
+        raise
+
+# -----------------------------
 # Background execution handling
 # -----------------------------
 
 def launch_background_task(key: str, func, *args, **kwargs):
     """Run a function in a thread and store status in module-level TASKS dict."""
     with TASKS_LOCK:
-        TASKS[key] = {"status": "running", "start": time.time()}
+        TASKS[key] = {"status": "running", "start": time.time(), "progress": 0.0, "message": "Queued"}
 
     def _target():
         try:
@@ -92,14 +157,18 @@ def launch_background_task(key: str, func, *args, **kwargs):
                 TASKS[key].update({
                     "status": "done",
                     "bytes": pdf_bytes,
-                    "end": time.time()
+                    "end": time.time(),
+                    "progress": 1.0,
+                    "message": "Completed"
                 })
         except Exception as e:  # broad capture, store error
             with TASKS_LOCK:
                 TASKS[key].update({
                     "status": "error",
                     "error": str(e),
-                    "end": time.time()
+                    "end": time.time(),
+                    "progress": 1.0,
+                    "message": "Error"
                 })
     threading.Thread(target=_target, daemon=True).start()
 
@@ -118,6 +187,12 @@ if 'auto_refresh' not in st.session_state:
 # -----------------------------
 
 st.set_page_config(page_title="Resume PDF Generator", page_icon="📄", layout="wide")
+
+if _PDFENGINE_IMPORT_ERROR:
+    st.error("Failed to import pdfengine module. Ensure repository structure is intact.")
+    with st.expander("Import Error Details"):
+        st.exception(_PDFENGINE_IMPORT_ERROR)
+    st.stop()
 
 st.title("📄 Resume PDF Generator (Streamlit UI)")
 st.caption("Open-source interface for converting resume tokens to PDFs.")
@@ -170,7 +245,15 @@ if submitted:
         if existing and existing.get('status') in ("running", "done"):
             st.info("This exact request was already started. Showing status below.")
         else:
-            launch_background_task(task_key, cached_generate_pdf, token, resolution, output_format, enable_ocr, preserve_links)
+            # Launch progress-enabled generation
+            def progress_wrapper():
+                def cb(p, msg):
+                    with TASKS_LOCK:
+                        if task_key in TASKS and TASKS[task_key]['status'] == 'running':
+                            TASKS[task_key]['progress'] = max(0.0, min(1.0, p))
+                            TASKS[task_key]['message'] = msg
+                return generate_with_progress(token, resolution, output_format, enable_ocr, preserve_links, cb)
+            launch_background_task(task_key, progress_wrapper)
             st.success("Generation started.")
 
 # Display active task status
@@ -183,12 +266,13 @@ if active_key:
         status = task_info.get('status')
         if status == 'running':
             elapsed = time.time() - task_info['start']
+            prog = task_info.get('progress', 0.0)
+            msg = task_info.get('message', 'Working…')
             with placeholder.container():
-                st.info(f"⏳ Generating PDF... Elapsed {elapsed:.1f}s (click 'Refresh Status' to update)")
-                st.progress(min(0.05 + (elapsed/30.0), 0.95))
+                st.write(f"⏳ <strong>Generating PDF</strong> – {msg} (elapsed {elapsed:.1f}s)", unsafe_allow_html=True)
+                st.progress(prog)
             if st.session_state.auto_refresh:
-                # light auto-refresh via query param trick to avoid deprecated rerun
-                st.write("Auto-refresh is experimental. If it stalls, press the Refresh Status button below.")
+                st.autorefresh(interval=1200, key=f"refresh_{active_key}")
         elif status == 'done':
             duration = task_info['end'] - task_info['start']
             pdf_bytes = task_info['bytes']
@@ -217,10 +301,9 @@ if active_key:
                 st.error(f"❌ Failed after {duration:.2f}s: {err}")
 
         # Manual refresh button
-        if status == 'running':
-            if st.button("Refresh Status"):
-                if hasattr(st, 'rerun'):
-                    st.rerun()
+        if status == 'running' and not st.session_state.auto_refresh:
+            if st.button("Refresh Status") and hasattr(st, 'rerun'):
+                st.rerun()
 
 st.markdown("---")
 
