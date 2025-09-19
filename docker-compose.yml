@@ -1,0 +1,76 @@
+version: '3.8'
+
+services:
+  # Basic API service without ngrok
+  resume-pdf-api:
+    build: .
+    container_name: resume-pdf-generator
+    ports:
+      - "8001:8001"
+    environment:
+      - API_HOST=0.0.0.0
+      - API_PORT=8001
+      - API_DEBUG=false
+      - API_TIMEOUT=120
+      - PDF_DEFAULT_RESOLUTION=3000
+      - PDF_MAX_RESOLUTION=10000
+      - PDF_MIN_RESOLUTION=100
+      - TESSERACT_PATH=/usr/bin/tesseract
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - resume-network
+
+  # API service with ngrok tunnel
+  api-with-ngrok:
+    build: .
+    container_name: resume-pdf-ngrok
+    ports:
+      - "8001:8001"
+      - "4040:4040"  # ngrok web interface
+    environment:
+      - API_HOST=0.0.0.0
+      - API_PORT=8001
+      - API_DEBUG=true
+      - TESSERACT_PATH=/usr/bin/tesseract
+      - NGROK_AUTH_TOKEN=${NGROK_AUTH_TOKEN}  # Set this in .env file
+    volumes:
+      - ./logs:/app/logs
+    command: ["/app/start_with_ngrok.sh"]
+    restart: unless-stopped
+    networks:
+      - resume-network
+    profiles:
+      - ngrok
+
+  # Development service with auto-reload
+  api-dev:
+    build: .
+    container_name: resume-pdf-dev
+    ports:
+      - "8001:8001"
+    environment:
+      - API_HOST=0.0.0.0
+      - API_PORT=8001
+      - API_DEBUG=true
+      - TESSERACT_PATH=/usr/bin/tesseract
+    volumes:
+      - .:/app  # Mount source code for live reload
+      - ./logs:/app/logs
+    command: ["/app/start_dev.sh"]
+    restart: unless-stopped
+    networks:
+      - resume-network
+    profiles:
+      - dev
+
+networks:
+  resume-network:
+    driver: bridge

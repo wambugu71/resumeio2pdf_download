@@ -1,0 +1,13 @@
+# Alternative Procfiles for different deployment scenarios
+
+# Simple Procfile (for platforms that handle PORT correctly)
+web: uvicorn app:app --host 0.0.0.0 --port ${PORT:-8001}
+
+# Python-based Procfile (for better environment handling)
+web: python app.py
+
+# Bash script Procfile (current - handles complex setup)
+web: bash start.sh
+
+# For Heroku-style platforms
+web: gunicorn -w 4 -k uvicorn.workers.UvicornWorker app:app --bind 0.0.0.0:$PORT

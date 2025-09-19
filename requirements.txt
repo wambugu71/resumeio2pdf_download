@@ -1,11 +1,28 @@
-#streamlit
-streamlit_navigation_bar==3.3.0
-streamlit_extras==0.3.6
-dataclasses==0.6
+# FastAPI and server dependencies
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+gunicorn==21.2.0
+pydantic==2.5.0
+
+# PDF processing dependencies
+pypdf==3.17.1
 pytesseract==0.3.10
-pillow==10.4.0
-pypdf==4.1.0
-numpy==1.26.4
-hydralit_components
-fastapi
-streamlit==1.35.0 
+Pillow==10.1.0
+
+# HTTP requests
+requests==2.31.0
+
+# CORS middleware (included with FastAPI)
+
+# Additional dependencies for Docker health checks
+httpx==0.25.2
+
+# Environment variable management
+python-dotenv==1.0.0
+
+# For Vercel deployment
+mangum==0.17.0
+
+# Streamlit UI (added for new Streamlit app)
+streamlit==1.37.0
+humanize==4.9.0
