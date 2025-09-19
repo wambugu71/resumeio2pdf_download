@@ -180,7 +180,7 @@ if 'run_history' not in st.session_state:
 if 'active_token_key' not in st.session_state:
     st.session_state.active_token_key = None
 if 'auto_refresh' not in st.session_state:
-    st.session_state.auto_refresh = False  # default off to avoid rerun complexity
+    st.session_state.auto_refresh = True  # force enabled (legacy key kept for compatibility)
 
 # -----------------------------
 # Layout / UI
@@ -206,7 +206,7 @@ with st.sidebar:
     st.write(f"OCR Available: {'✅' if OCR_AVAILABLE else '❌'}")
     if not OCR_AVAILABLE:
         st.info("Tesseract not found. OCR disabled.")
-    st.toggle("Auto Refresh While Running", key="auto_refresh")
+    # Auto refresh always on now; toggle removed per user request.
     st.markdown("---")
     st.write("Cache Controls")
     if st.button("Clear Cached PDFs"):
@@ -215,8 +215,8 @@ with st.sidebar:
     if st.session_state.active_token_key:
         with TASKS_LOCK:
             ti = TASKS.get(st.session_state.active_token_key)
-        if ti and ti.get('status') == 'running' and st.session_state.auto_refresh:
-            st.caption("Auto-refresh enabled: page will update when you interact or manually refresh.")
+        if ti and ti.get('status') == 'running':
+            st.caption("Auto-updating while generation runs…")
 
 # Main input form
 with st.form("generate_form", clear_on_submit=False):
@@ -271,8 +271,8 @@ if active_key:
             with placeholder.container():
                 st.write(f"⏳ <strong>Generating PDF</strong> – {msg} (elapsed {elapsed:.1f}s)", unsafe_allow_html=True)
                 st.progress(prog)
-            if st.session_state.auto_refresh:
-                st.autorefresh(interval=1200, key=f"refresh_{active_key}")
+            # Always auto refresh while running
+            st.autorefresh(interval=1200, key=f"refresh_{active_key}")
         elif status == 'done':
             duration = task_info['end'] - task_info['start']
             pdf_bytes = task_info['bytes']
@@ -301,9 +301,7 @@ if active_key:
                 st.error(f"❌ Failed after {duration:.2f}s: {err}")
 
         # Manual refresh button
-        if status == 'running' and not st.session_state.auto_refresh:
-            if st.button("Refresh Status") and hasattr(st, 'rerun'):
-                st.rerun()
+        # Manual refresh button removed per request.
 
 st.markdown("---")
 
