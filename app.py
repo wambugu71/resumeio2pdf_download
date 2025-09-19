@@ -29,6 +29,12 @@ def ocr_available() -> bool:
 OCR_AVAILABLE = ocr_available()
 
 # -----------------------------
+# Global task registry (thread-safe)
+# -----------------------------
+TASKS: Dict[str, Dict[str, Any]] = {}
+TASKS_LOCK = threading.Lock()
+
+# -----------------------------
 # Helpers
 # -----------------------------
 
@@ -75,34 +81,37 @@ def cached_generate_pdf(token: str, resolution: int, fmt: str, enable_ocr: bool,
 # -----------------------------
 
 def launch_background_task(key: str, func, *args, **kwargs):
-    """Run a function in a thread and store status in session_state."""
-    st.session_state.tasks[key] = {"status": "running", "start": time.time()}
+    """Run a function in a thread and store status in module-level TASKS dict."""
+    with TASKS_LOCK:
+        TASKS[key] = {"status": "running", "start": time.time()}
+
     def _target():
         try:
             pdf_bytes = func(*args, **kwargs)
-            st.session_state.tasks[key].update({
-                "status": "done",
-                "bytes": pdf_bytes,
-                "end": time.time()
-            })
+            with TASKS_LOCK:
+                TASKS[key].update({
+                    "status": "done",
+                    "bytes": pdf_bytes,
+                    "end": time.time()
+                })
         except Exception as e:  # broad capture, store error
-            st.session_state.tasks[key].update({
-                "status": "error",
-                "error": str(e),
-                "end": time.time()
-            })
-    thread = threading.Thread(target=_target, daemon=True)
-    thread.start()
+            with TASKS_LOCK:
+                TASKS[key].update({
+                    "status": "error",
+                    "error": str(e),
+                    "end": time.time()
+                })
+    threading.Thread(target=_target, daemon=True).start()
 
 # -----------------------------
 # Session State Initialization
 # -----------------------------
 if 'run_history' not in st.session_state:
     st.session_state.run_history = []  # list[RunResult]
-if 'tasks' not in st.session_state:
-    st.session_state.tasks = {}
 if 'active_token_key' not in st.session_state:
     st.session_state.active_token_key = None
+if 'auto_refresh' not in st.session_state:
+    st.session_state.auto_refresh = False  # default off to avoid rerun complexity
 
 # -----------------------------
 # Layout / UI
@@ -122,11 +131,17 @@ with st.sidebar:
     st.write(f"OCR Available: {'✅' if OCR_AVAILABLE else '❌'}")
     if not OCR_AVAILABLE:
         st.info("Tesseract not found. OCR disabled.")
+    st.toggle("Auto Refresh While Running", key="auto_refresh")
     st.markdown("---")
     st.write("Cache Controls")
     if st.button("Clear Cached PDFs"):
         cached_generate_pdf.clear()
         st.success("Cache cleared.")
+    if st.session_state.active_token_key:
+        with TASKS_LOCK:
+            ti = TASKS.get(st.session_state.active_token_key)
+        if ti and ti.get('status') == 'running' and st.session_state.auto_refresh:
+            st.caption("Auto-refresh enabled: page will update when you interact or manually refresh.")
 
 # Main input form
 with st.form("generate_form", clear_on_submit=False):
@@ -150,7 +165,9 @@ if submitted:
         # Build task key
         task_key = f"{token_fingerprint(token)}-{resolution}-{output_format}-{int(enable_ocr)}-{int(preserve_links)}"
         st.session_state.active_token_key = task_key
-        if task_key in st.session_state.tasks and st.session_state.tasks[task_key]['status'] in ("running", "done"):
+        with TASKS_LOCK:
+            existing = TASKS.get(task_key)
+        if existing and existing.get('status') in ("running", "done"):
             st.info("This exact request was already started. Showing status below.")
         else:
             launch_background_task(task_key, cached_generate_pdf, token, resolution, output_format, enable_ocr, preserve_links)
@@ -159,16 +176,20 @@ if submitted:
 # Display active task status
 active_key = st.session_state.active_token_key
 if active_key:
-    task_info: Dict[str, Any] = st.session_state.tasks.get(active_key, {})
+    with TASKS_LOCK:
+        task_info: Dict[str, Any] = TASKS.get(active_key, {}).copy()
     if task_info:
         placeholder = st.empty()
-        if task_info['status'] == 'running':
+        status = task_info.get('status')
+        if status == 'running':
             elapsed = time.time() - task_info['start']
             with placeholder.container():
-                st.info(f"⏳ Generating PDF... Elapsed {elapsed:.1f}s")
-                st.progress(min(0.05 + (elapsed/30.0), 0.95))  # synthetic progress bar
-            st.experimental_rerun()
-        elif task_info['status'] == 'done':
+                st.info(f"⏳ Generating PDF... Elapsed {elapsed:.1f}s (click 'Refresh Status' to update)")
+                st.progress(min(0.05 + (elapsed/30.0), 0.95))
+            if st.session_state.auto_refresh:
+                # light auto-refresh via query param trick to avoid deprecated rerun
+                st.write("Auto-refresh is experimental. If it stalls, press the Refresh Status button below.")
+        elif status == 'done':
             duration = task_info['end'] - task_info['start']
             pdf_bytes = task_info['bytes']
             size = len(pdf_bytes)
@@ -179,7 +200,6 @@ if active_key:
                 size_bytes=size,
                 success=True
             )
-            # Append to history if new
             if not any(r.token_hash == run_result.token_hash and r.size_bytes == size for r in st.session_state.run_history):
                 st.session_state.run_history.insert(0, run_result)
             with placeholder.container():
@@ -190,11 +210,17 @@ if active_key:
                     file_name=f"resume_{run_result.token_hash}.pdf",
                     mime="application/pdf"
                 )
-        elif task_info['status'] == 'error':
+        elif status == 'error':
             duration = task_info['end'] - task_info['start']
             err = task_info.get('error', 'Unknown error')
             with placeholder.container():
                 st.error(f"❌ Failed after {duration:.2f}s: {err}")
+
+        # Manual refresh button
+        if status == 'running':
+            if st.button("Refresh Status"):
+                if hasattr(st, 'rerun'):
+                    st.rerun()
 
 st.markdown("---")
 
