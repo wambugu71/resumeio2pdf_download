@@ -2,6 +2,8 @@ import os
 import io
 import time
 import hashlib
+import csv
+from pathlib import Path
 from dataclasses import dataclass
 from typing import Optional, Dict, Any
 
@@ -145,6 +147,56 @@ if 'run_history' not in st.session_state:
     st.session_state.run_history = []  # list[RunResult]
 if 'last_generated' not in st.session_state:
     st.session_state.last_generated = None  # (hash, bytes, RunResult)
+if 'history_dirty' not in st.session_state:
+    st.session_state.history_dirty = False
+
+# -----------------------------
+# Persistent history (CSV)
+# -----------------------------
+DATA_DIR = Path("data")
+RUN_CSV_PATH = DATA_DIR / "run_history.csv"
+
+def ensure_history_file():
+    if not DATA_DIR.exists():
+        DATA_DIR.mkdir(parents=True, exist_ok=True)
+    if not RUN_CSV_PATH.exists():
+        with RUN_CSV_PATH.open('w', newline='', encoding='utf-8') as f:
+            writer = csv.writer(f)
+            writer.writerow([
+                "timestamp","token_hash","token_display","duration_s","size_bytes",
+                "resolution","format","enable_ocr","preserve_links","success","error"
+            ])
+
+def append_history_row(token_hash: str, token_display: str, duration_s: float, size_bytes: int,
+                        resolution: int, fmt: str, enable_ocr: bool, preserve_links: bool,
+                        success: bool, error: Optional[str]):
+    ensure_history_file()
+    with RUN_CSV_PATH.open('a', newline='', encoding='utf-8') as f:
+        writer = csv.writer(f)
+        writer.writerow([
+            time.strftime('%Y-%m-%dT%H:%M:%SZ', time.gmtime()),
+            token_hash,
+            token_display,
+            f"{duration_s:.4f}",
+            size_bytes,
+            resolution,
+            fmt,
+            int(enable_ocr),
+            int(preserve_links),
+            int(success),
+            (error or "")
+        ])
+    st.session_state.history_dirty = True
+
+def load_history_df():
+    import pandas as pd
+    if not RUN_CSV_PATH.exists():
+        return pd.DataFrame(columns=["timestamp","token_hash","token_display","duration_s","size_bytes","resolution","format","enable_ocr","preserve_links","success","error"])
+    try:
+        df = pd.read_csv(RUN_CSV_PATH)
+    except Exception:
+        return pd.DataFrame()
+    return df
 
 # -----------------------------
 # Layout / UI
@@ -218,6 +270,18 @@ if submitted:
                 success=True
             )
             st.session_state.run_history.insert(0, run_result)
+            append_history_row(
+                token_hash=param_hash,
+                token_display=run_result.token_display,
+                duration_s=duration,
+                size_bytes=len(pdf_bytes),
+                resolution=resolution,
+                fmt=output_format,
+                enable_ocr=enable_ocr,
+                preserve_links=preserve_links,
+                success=True,
+                error=None
+            )
             st.success(f"✅ PDF generated in {duration:.2f}s — {humanize.naturalsize(len(pdf_bytes))}")
             st.download_button(
                 label="Download PDF",
@@ -227,26 +291,88 @@ if submitted:
             )
         except Exception as e:
             st.error(f"❌ Generation failed: {e}")
+            append_history_row(
+                token_hash=param_hash,
+                token_display=anonymize(token),
+                duration_s=time.time()-start,
+                size_bytes=0,
+                resolution=resolution,
+                fmt=output_format,
+                enable_ocr=enable_ocr,
+                preserve_links=preserve_links,
+                success=False,
+                error=str(e)
+            )
             pdf_bytes = None
 
 st.markdown("---")
 
 # Run History
-st.subheader("Recent Runs")
-if not st.session_state.run_history:
-    st.write("No runs yet.")
+st.subheader("Dashboard")
+# Always re-read if marked dirty to reflect latest append before computing metrics
+df_hist = load_history_df()
+st.session_state.history_dirty = False
+
+if not df_hist.empty:
+    # Ensure expected columns exist
+    if 'token_hash' in df_hist.columns:
+        df_hist['pdf_filename'] = df_hist['token_hash'].apply(lambda h: f"resume_{h}.pdf")
 else:
-    import pandas as pd
-    hist_rows = [
-        {
-            "Token": r.token_display,
-            "Hash": r.token_hash,
-            "Duration (s)": round(r.duration_s, 2),
-            "Size": humanize.naturalsize(r.size_bytes),
-            "Status": "Success" if r.success else "Error"
-        } for r in st.session_state.run_history
-    ]
-    df = pd.DataFrame(hist_rows)
-    st.dataframe(df, use_container_width=True, hide_index=True)
+    df_hist['pdf_filename'] = []
+
+total_runs = int(df_hist.shape[0]) if not df_hist.empty else 0
+successful = int(df_hist[df_hist.get('success', 0)==1].shape[0]) if not df_hist.empty else 0
+failed = total_runs - successful
+total_bytes = int(df_hist['size_bytes'].sum()) if not df_hist.empty else 0
+try:
+    avg_duration = float(df_hist['duration_s'].astype(float).mean()) if not df_hist.empty else 0.0
+except Exception:
+    avg_duration = 0.0
+colA, colB, colC, colD, colE = st.columns(5)
+colA.metric("Total Runs", total_runs)
+colB.metric("Success", successful)
+colC.metric("Failed", failed)
+colD.metric("Total Size", humanize.naturalsize(total_bytes) if total_bytes>0 else "0 B")
+colE.metric("Avg Duration (s)", f"{avg_duration:.2f}")
+
+with st.expander("Recent Runs (Session)"):
+    if not st.session_state.run_history:
+        st.write("No runs this session.")
+    else:
+        import pandas as pd
+        hist_rows = [
+            {
+                "Token": r.token_display,
+                "Hash": r.token_hash,
+                "Duration (s)": round(r.duration_s, 2),
+                "Size": humanize.naturalsize(r.size_bytes),
+                "Status": "Success" if r.success else "Error"
+            } for r in st.session_state.run_history
+        ]
+        df_session = pd.DataFrame(hist_rows)
+        st.dataframe(df_session, use_container_width=True, hide_index=True)
+
+with st.expander("Full Persistent History (CSV / Hashed)"):
+    if df_hist.empty:
+        st.write("No history recorded yet.")
+    else:
+        # Show only hashed representation & key metrics
+        display_cols = [c for c in ["timestamp","pdf_filename","size_bytes","duration_s","resolution","format","enable_ocr","preserve_links","success","error"] if c in df_hist.columns]
+        df_view = df_hist[display_cols].copy()
+        # Format sizes and duration lightly for readability
+        if 'size_bytes' in df_view.columns:
+            df_view['size_bytes'] = df_view['size_bytes'].apply(lambda v: humanize.naturalsize(v) if isinstance(v,(int,float)) else v)
+        if 'duration_s' in df_view.columns:
+            try:
+                df_view['duration_s'] = df_view['duration_s'].astype(float).map(lambda v: f"{v:.2f}")
+            except Exception:
+                pass
+        st.dataframe(df_view.tail(300), use_container_width=True, hide_index=True)
+        st.download_button(
+            "Download Full CSV",
+            data=df_hist.to_csv(index=False),
+            file_name="run_history.csv",
+            mime="text/csv"
+        )
 
 st.caption("Tip: identical parameter combinations reuse cached results. Clear cache in the sidebar.")
