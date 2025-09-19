@@ -229,7 +229,19 @@ if _PDFENGINE_IMPORT_ERROR:
 
 st.title("📄 Resume PDF Generator (Streamlit UI)")
 st.caption("Open-source interface for converting resume tokens to PDFs.")
-st.markdown("[Get Your render token](https://resume.io/api/app/resumes)")
+st.markdown(""" [Get Your render token](https://resume.io/api/app/resumes) and copy  the value `renderingToken` youll see the example page with 
+```{
+  "resumes": [
+    {
+      "type": "resume",
+      "displayName": "Wambugu Resume",
+      "downloadTXTUrl": "/api/app/resumes/43743355/txt-download",
+      "renderingToken": "xxxxxxxxJpkQL5KteJuC",
+      "updatedAt": "2025-xxxxx,
+      ...
+    }
+  ]
+}``` """)
 
 # Moved settings (previously in sidebar) into an expander on the main page
 default_resolution = int(os.getenv("PDF_DEFAULT_RESOLUTION", "3000"))
@@ -360,5 +372,6 @@ with st.expander("Recent Runs (Session)"):
         st.dataframe(df_session, use_container_width=True, hide_index=True)
 
 st.caption("Tip: identical parameter combinations reuse cached results. Use the 'Settings & Cache' expander above to clear cache.")
+
 
 
