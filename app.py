@@ -2,7 +2,6 @@ import os
 import io
 import time
 import hashlib
-import threading
 from dataclasses import dataclass
 from typing import Optional, Dict, Any
 
@@ -49,11 +48,7 @@ def ocr_available() -> bool:
 
 OCR_AVAILABLE = ocr_available()
 
-# -----------------------------
-# Global task registry (thread-safe)
-# -----------------------------
-TASKS: Dict[str, Dict[str, Any]] = {}
-TASKS_LOCK = threading.Lock()
+# (Removed background task registry – synchronous flow only)
 
 # -----------------------------
 # Helpers
@@ -141,48 +136,15 @@ def generate_with_progress(token: str, resolution: int, fmt: str, enable_ocr: bo
         progress_cb(1.0, "Failed")
         raise
 
-# -----------------------------
-# Background execution handling
-# -----------------------------
-
-def launch_background_task(key: str, func, *args, **kwargs):
-    """Run a function in a thread and store status in module-level TASKS dict."""
-    with TASKS_LOCK:
-        TASKS[key] = {"status": "running", "start": time.time(), "progress": 0.0, "message": "Queued"}
-
-    def _target():
-        try:
-            pdf_bytes = func(*args, **kwargs)
-            with TASKS_LOCK:
-                TASKS[key].update({
-                    "status": "done",
-                    "bytes": pdf_bytes,
-                    "end": time.time(),
-                    "progress": 1.0,
-                    "message": "Completed"
-                })
-        except Exception as e:  # broad capture, store error
-            with TASKS_LOCK:
-                TASKS[key].update({
-                    "status": "error",
-                    "error": str(e),
-                    "end": time.time(),
-                    "progress": 1.0,
-                    "message": "Error"
-                })
-    threading.Thread(target=_target, daemon=True).start()
+# (Removed background execution; generation now runs inline with progress bar)
 
 # -----------------------------
 # Session State Initialization
 # -----------------------------
 if 'run_history' not in st.session_state:
     st.session_state.run_history = []  # list[RunResult]
-if 'active_token_key' not in st.session_state:
-    st.session_state.active_token_key = None
-if 'auto_refresh' not in st.session_state:
-    st.session_state.auto_refresh = True  # force enabled (legacy key kept for compatibility)
-if 'last_auto_tick' not in st.session_state:
-    st.session_state.last_auto_tick = 0.0
+if 'last_generated' not in st.session_state:
+    st.session_state.last_generated = None  # (hash, bytes, RunResult)
 
 # -----------------------------
 # Layout / UI
@@ -214,11 +176,7 @@ with st.sidebar:
     if st.button("Clear Cached PDFs"):
         cached_generate_pdf.clear()
         st.success("Cache cleared.")
-    if st.session_state.active_token_key:
-        with TASKS_LOCK:
-            ti = TASKS.get(st.session_state.active_token_key)
-        if ti and ti.get('status') == 'running':
-            st.caption("Auto-updating while generation runs… (no manual refresh needed)")
+    # No running background tasks in synchronous mode
 
 # Main input form
 with st.form("generate_form", clear_on_submit=False):
@@ -234,80 +192,42 @@ with st.form("generate_form", clear_on_submit=False):
         preserve_links = st.checkbox("Preserve Links", value=True)
     submitted = st.form_submit_button("Generate PDF", type="primary")
 
-# Validation & launch
+pdf_bytes = None
+run_result = None
+
 if submitted:
     if not token.strip():
         st.error("Token cannot be empty.")
     else:
-        # Build task key
-        task_key = f"{token_fingerprint(token)}-{resolution}-{output_format}-{int(enable_ocr)}-{int(preserve_links)}"
-        st.session_state.active_token_key = task_key
-        with TASKS_LOCK:
-            existing = TASKS.get(task_key)
-        if existing and existing.get('status') in ("running", "done"):
-            st.info("This exact request was already started. Showing status below.")
-        else:
-            # Launch progress-enabled generation
-            def progress_wrapper():
-                def cb(p, msg):
-                    with TASKS_LOCK:
-                        if task_key in TASKS and TASKS[task_key]['status'] == 'running':
-                            TASKS[task_key]['progress'] = max(0.0, min(1.0, p))
-                            TASKS[task_key]['message'] = msg
-                return generate_with_progress(token, resolution, output_format, enable_ocr, preserve_links, cb)
-            launch_background_task(task_key, progress_wrapper)
-            st.success("Generation started.")
-
-# Display active task status
-active_key = st.session_state.active_token_key
-if active_key:
-    with TASKS_LOCK:
-        task_info: Dict[str, Any] = TASKS.get(active_key, {}).copy()
-    if task_info:
-        placeholder = st.empty()
-        status = task_info.get('status')
-        if status == 'running':
-            elapsed = time.time() - task_info['start']
-            prog = task_info.get('progress', 0.0)
-            msg = task_info.get('message', 'Working…')
-            with placeholder.container():
-                st.write(f"⏳ <strong>Generating PDF</strong> – {msg} (elapsed {elapsed:.1f}s)", unsafe_allow_html=True)
-                st.progress(prog)
-            # Throttled auto-rerun loop (approx every 1s) for live updates
-            now = time.time()
-            if now - st.session_state.last_auto_tick > 1.0 and prog < 1.0:
-                st.session_state.last_auto_tick = now
-                if hasattr(st, 'rerun'):
-                    st.rerun()
-        elif status == 'done':
-            duration = task_info['end'] - task_info['start']
-            pdf_bytes = task_info['bytes']
-            size = len(pdf_bytes)
+        param_hash = token_fingerprint(token)
+        start = time.time()
+        progress_bar = st.progress(0.0)
+        status_line = st.empty()
+        def cb(p, msg):
+            progress_bar.progress(min(max(p, 0.0), 1.0))
+            status_line.write(msg)
+        try:
+            with st.spinner("Generating PDF..."):
+                pdf_bytes = generate_with_progress(token, resolution, output_format, enable_ocr, preserve_links, cb)
+            duration = time.time() - start
             run_result = RunResult(
                 token_display=anonymize(token),
-                token_hash=active_key.split('-')[0],
+                token_hash=param_hash,
                 duration_s=duration,
-                size_bytes=size,
+                size_bytes=len(pdf_bytes),
                 success=True
             )
-            if not any(r.token_hash == run_result.token_hash and r.size_bytes == size for r in st.session_state.run_history):
-                st.session_state.run_history.insert(0, run_result)
-            with placeholder.container():
-                st.success(f"✅ PDF generated in {duration:.2f}s — {humanize.naturalsize(size)}")
-                st.download_button(
-                    label="Download PDF",
-                    data=pdf_bytes,
-                    file_name=f"resume_{run_result.token_hash}.pdf",
-                    mime="application/pdf"
-                )
-        elif status == 'error':
-            duration = task_info['end'] - task_info['start']
-            err = task_info.get('error', 'Unknown error')
-            with placeholder.container():
-                st.error(f"❌ Failed after {duration:.2f}s: {err}")
-
-        # Manual refresh button
-        # Manual refresh button removed per request.
+            st.session_state.run_history.insert(0, run_result)
+            st.success(f"✅ PDF generated in {duration:.2f}s — {humanize.naturalsize(len(pdf_bytes))}")
+            st.download_button(
+                label="Download PDF",
+                data=pdf_bytes,
+                file_name=f"resume_{param_hash}.pdf",
+                mime="application/pdf"
+            )
+        except Exception as e:
+            st.error(f"❌ Generation failed: {e}")
+            pdf_bytes = None
 
 st.markdown("---")
 
