@@ -1,6 +1,6 @@
 __Notice:__
 
-> We have  migrated  from [Streamlit](https://resumeio2pdfdownload.streamlit.app) to [Self Hosted](www.resumegenn.site), since  streamlit  servers  have  been having  issues of late.
+> We have both https://resumeio2pdfdownload.streamlit.app or www.resumegenn.site , they are working well, use any if one not working.
 
 > __Before  using  this make sure  you  support  resumeio  first. This is  for  educational purposes.__
 
