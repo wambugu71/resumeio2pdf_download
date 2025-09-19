@@ -202,7 +202,24 @@ def load_history_df():
 # Layout / UI
 # -----------------------------
 
-st.set_page_config(page_title="Resume PDF Generator", page_icon="📄", layout="wide")
+st.set_page_config(page_title="Resume PDF Generator", page_icon="📄", layout="wide", initial_sidebar_state="collapsed")
+
+# Inject CSS to hide Streamlit chrome (menu, footer, header, sidebar)
+st.markdown(
+    """
+    <style>
+    /* Hide the top-right menu and footer */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
+    /* Hide (collapse) the sidebar completely */
+    section[data-testid="stSidebar"] {display: none !important;}
+    /* Optional: tighten page width a bit */
+    .block-container {padding-top: 1.2rem;}
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 if _PDFENGINE_IMPORT_ERROR:
     st.error("Failed to import pdfengine module. Ensure repository structure is intact.")
@@ -213,22 +230,19 @@ if _PDFENGINE_IMPORT_ERROR:
 st.title("📄 Resume PDF Generator (Streamlit UI)")
 st.caption("Open-source interface for converting resume tokens to PDFs.")
 
-with st.sidebar:
-    st.subheader("Settings")
-    default_resolution = int(os.getenv("PDF_DEFAULT_RESOLUTION", "3000"))
-    max_resolution_env = int(os.getenv("PDF_MAX_RESOLUTION", "5000"))
-    min_resolution_env = int(os.getenv("PDF_MIN_RESOLUTION", "100"))
-    hard_cap_resolution = min(max_resolution_env, 5000)  # protective cap for hosted env
+# Moved settings (previously in sidebar) into an expander on the main page
+default_resolution = int(os.getenv("PDF_DEFAULT_RESOLUTION", "3000"))
+max_resolution_env = int(os.getenv("PDF_MAX_RESOLUTION", "5000"))
+min_resolution_env = int(os.getenv("PDF_MIN_RESOLUTION", "100"))
+hard_cap_resolution = min(max_resolution_env, 5000)
+with st.expander("Settings & Cache", expanded=False):
     st.write(f"OCR Available: {'✅' if OCR_AVAILABLE else '❌'}")
     if not OCR_AVAILABLE:
         st.info("Tesseract not found. OCR disabled.")
-    # Auto refresh always on now; toggle removed per user request.
-    st.markdown("---")
-    st.write("Cache Controls")
     if st.button("Clear Cached PDFs"):
         cached_generate_pdf.clear()
         st.success("Cache cleared.")
-    # No running background tasks in synchronous mode
+    st.caption("These settings were moved here after hiding the sidebar as requested.")
 
 # Main input form
 with st.form("generate_form", clear_on_submit=False):
@@ -352,27 +366,4 @@ with st.expander("Recent Runs (Session)"):
         df_session = pd.DataFrame(hist_rows)
         st.dataframe(df_session, use_container_width=True, hide_index=True)
 
-with st.expander("Full Persistent History (CSV / Hashed)"):
-    if df_hist.empty:
-        st.write("No history recorded yet.")
-    else:
-        # Show only hashed representation & key metrics
-        display_cols = [c for c in ["timestamp","pdf_filename","size_bytes","duration_s","resolution","format","enable_ocr","preserve_links","success","error"] if c in df_hist.columns]
-        df_view = df_hist[display_cols].copy()
-        # Format sizes and duration lightly for readability
-        if 'size_bytes' in df_view.columns:
-            df_view['size_bytes'] = df_view['size_bytes'].apply(lambda v: humanize.naturalsize(v) if isinstance(v,(int,float)) else v)
-        if 'duration_s' in df_view.columns:
-            try:
-                df_view['duration_s'] = df_view['duration_s'].astype(float).map(lambda v: f"{v:.2f}")
-            except Exception:
-                pass
-        st.dataframe(df_view.tail(300), use_container_width=True, hide_index=True)
-        st.download_button(
-            "Download Full CSV",
-            data=df_hist.to_csv(index=False),
-            file_name="run_history.csv",
-            mime="text/csv"
-        )
-
-st.caption("Tip: identical parameter combinations reuse cached results. Clear cache in the sidebar.")
+st.caption("Tip: identical parameter combinations reuse cached results. Use the 'Settings & Cache' expander above to clear cache.")
