@@ -181,6 +181,8 @@ if 'active_token_key' not in st.session_state:
     st.session_state.active_token_key = None
 if 'auto_refresh' not in st.session_state:
     st.session_state.auto_refresh = True  # force enabled (legacy key kept for compatibility)
+if 'last_auto_tick' not in st.session_state:
+    st.session_state.last_auto_tick = 0.0
 
 # -----------------------------
 # Layout / UI
@@ -216,7 +218,7 @@ with st.sidebar:
         with TASKS_LOCK:
             ti = TASKS.get(st.session_state.active_token_key)
         if ti and ti.get('status') == 'running':
-            st.caption("Auto-updating while generation runs…")
+            st.caption("Auto-updating while generation runs… (no manual refresh needed)")
 
 # Main input form
 with st.form("generate_form", clear_on_submit=False):
@@ -271,8 +273,12 @@ if active_key:
             with placeholder.container():
                 st.write(f"⏳ <strong>Generating PDF</strong> – {msg} (elapsed {elapsed:.1f}s)", unsafe_allow_html=True)
                 st.progress(prog)
-            # Always auto refresh while running
-            st.autorefresh(interval=1200, key=f"refresh_{active_key}")
+            # Throttled auto-rerun loop (approx every 1s) for live updates
+            now = time.time()
+            if now - st.session_state.last_auto_tick > 1.0 and prog < 1.0:
+                st.session_state.last_auto_tick = now
+                if hasattr(st, 'rerun'):
+                    st.rerun()
         elif status == 'done':
             duration = task_info['end'] - task_info['start']
             pdf_bytes = task_info['bytes']
