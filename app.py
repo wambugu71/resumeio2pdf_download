@@ -229,6 +229,7 @@ if _PDFENGINE_IMPORT_ERROR:
 
 st.title("📄 Resume PDF Generator (Streamlit UI)")
 st.caption("Open-source interface for converting resume tokens to PDFs.")
+st.markdown("[Get Your render token](https://resume.io/api/app/resumes)")
 
 # Moved settings (previously in sidebar) into an expander on the main page
 default_resolution = int(os.getenv("PDF_DEFAULT_RESOLUTION", "3000"))
@@ -359,4 +360,5 @@ with st.expander("Recent Runs (Session)"):
         st.dataframe(df_session, use_container_width=True, hide_index=True)
 
 st.caption("Tip: identical parameter combinations reuse cached results. Use the 'Settings & Cache' expander above to clear cache.")
+
 
