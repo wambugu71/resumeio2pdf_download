@@ -235,14 +235,6 @@ default_resolution = int(os.getenv("PDF_DEFAULT_RESOLUTION", "3000"))
 max_resolution_env = int(os.getenv("PDF_MAX_RESOLUTION", "5000"))
 min_resolution_env = int(os.getenv("PDF_MIN_RESOLUTION", "100"))
 hard_cap_resolution = min(max_resolution_env, 5000)
-with st.expander("Settings & Cache", expanded=False):
-    st.write(f"OCR Available: {'✅' if OCR_AVAILABLE else '❌'}")
-    if not OCR_AVAILABLE:
-        st.info("Tesseract not found. OCR disabled.")
-    if st.button("Clear Cached PDFs"):
-        cached_generate_pdf.clear()
-        st.success("Cache cleared.")
-    st.caption("These settings were moved here after hiding the sidebar as requested.")
 
 # Main input form
 with st.form("generate_form", clear_on_submit=False):
@@ -367,3 +359,4 @@ with st.expander("Recent Runs (Session)"):
         st.dataframe(df_session, use_container_width=True, hide_index=True)
 
 st.caption("Tip: identical parameter combinations reuse cached results. Use the 'Settings & Cache' expander above to clear cache.")
+
