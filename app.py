@@ -355,22 +355,7 @@ colC.metric("Failed", failed)
 colD.metric("Total Size", humanize.naturalsize(total_bytes) if total_bytes>0 else "0 B")
 colE.metric("Avg Duration (s)", f"{avg_duration:.2f}")
 
-with st.expander("Recent Runs (Session)"):
-    if not st.session_state.run_history:
-        st.write("No runs this session.")
-    else:
-        import pandas as pd
-        hist_rows = [
-            {
-                "Token": r.token_display,
-                "Hash": r.token_hash,
-                "Duration (s)": round(r.duration_s, 2),
-                "Size": humanize.naturalsize(r.size_bytes),
-                "Status": "Success" if r.success else "Error"
-            } for r in st.session_state.run_history
-        ]
-        df_session = pd.DataFrame(hist_rows)
-        st.dataframe(df_session, use_container_width=True, hide_index=True)
+
 
 st.markdown(
     """
@@ -392,6 +377,7 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 
 
 
