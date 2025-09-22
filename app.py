@@ -372,8 +372,23 @@ with st.expander("Recent Runs (Session)"):
         df_session = pd.DataFrame(hist_rows)
         st.dataframe(df_session, use_container_width=True, hide_index=True)
 
-st.caption("Tip: identical parameter combinations reuse cached results. Use the 'Settings & Cache' expander above to clear cache.")
-
+st.markdown(
+    """
+    <div style="position: fixed; bottom: 0; width: 100%; text-align: center; padding: 10px;
+                background-color: #f9f9f9; border-top: 1px solid #ddd;">
+        ✨ <b>Good luck on your job hunt!</b> ✨ <br>
+        If you’d like to support the developer, you can: <br><br>
+        <a href="https://buymeacoffee.com/wambugu" target="_blank">
+            <img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me a Coffee">
+        </a>
+        &nbsp; or &nbsp;
+        <a href="https://www.paypal.com/ncp/payment/664ZL5XX3TKMG" target="_blank">
+            <img src="https://img.shields.io/badge/Pay%20Now-FFD140?logo=paypal&logoColor=000&style=for-the-badge" alt="PayPal">
+        </a>
+    </div>
+    """,
+    unsafe_allow_html=True
+)
 
 
 
