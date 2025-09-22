@@ -374,21 +374,25 @@ with st.expander("Recent Runs (Session)"):
 
 st.markdown(
     """
-    <div style="position: fixed; bottom: 0; width: 100%; text-align: center; padding: 10px;
-                background-color: #f9f9f9; border-top: 1px solid #ddd;">
+    <div style="position: fixed; bottom: 0; width: 100%; text-align: center; 
+                padding: 6px; background-color: #f9f9f9; border-top: 1px solid #ddd; 
+                font-size: 12px; line-height: 1.4;">
         ✨ <b>Good luck on your job hunt!</b> ✨ <br>
-        If you’d like to support the developer, you can: <br><br>
+        Support the developer & help keep servers running: <br>
         <a href="https://buymeacoffee.com/wambugu" target="_blank">
-            <img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" alt="Buy Me a Coffee">
+            <img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" 
+                 alt="Buy Me a Coffee" height="28">
         </a>
-        &nbsp; or &nbsp;
+        &nbsp; 
         <a href="https://www.paypal.com/ncp/payment/664ZL5XX3TKMG" target="_blank">
-            <img src="https://img.shields.io/badge/Pay%20Now-FFD140?logo=paypal&logoColor=000&style=for-the-badge" alt="PayPal">
+            <img src="https://img.shields.io/badge/Pay%20Now-FFD140?logo=paypal&logoColor=000&style=for-the-badge" 
+                 alt="PayPal" height="28">
         </a>
     </div>
     """,
     unsafe_allow_html=True
 )
+
 
 
 
