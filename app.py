@@ -363,7 +363,7 @@ st.markdown(
                 padding: 6px; background-color: #f9f9f9; border-top: 1px solid #ddd; 
                 font-size: 12px; line-height: 1.4;">
         ✨ <b>Good luck on your job hunt!</b> ✨ <br>
-        Support the developer & help keep servers running: <br>
+        Support the developer: <br>
         <a href="https://buymeacoffee.com/wambugu" target="_blank">
             <img src="https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png" 
                  alt="Buy Me a Coffee" height="28">
@@ -377,6 +377,7 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 
 
 
