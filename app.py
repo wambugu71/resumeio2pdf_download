@@ -348,7 +348,7 @@ try:
     avg_duration = float(df_hist['duration_s'].astype(float).mean()) if not df_hist.empty else 0.0
 except Exception:
     avg_duration = 0.0
-colA, colB, colC, colD, colE = st.columns(4)
+colA, colB, colC, colE = st.columns(4)
 colA.metric("Total Runs", total_runs)
 colB.metric("Success", successful)
 colC.metric("Failed", failed)
@@ -376,6 +376,7 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
+
 
 
 
