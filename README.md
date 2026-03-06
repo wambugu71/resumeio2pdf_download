@@ -2,9 +2,9 @@ __Notice:__
 
 > We have both https://resumeio2pdfdownload.streamlit.app or www.resumegenn.site , they are working well, use any if one not working.
 
-> __Before  using  this make sure  you  support  resumeio  first. This is  for  educational purposes.__
+> __Before  using  this make sure  you  support  resumeio  first. This is  strictly for  educational purposes.__
 
-__Remember__:  `to support` [![Buy Me a Coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://buymeacoffee.com/wambugu) or [![PayPal](https://img.shields.io/badge/Pay%20Now-FFD140?logo=paypal&logoColor=000&style=for-the-badge)](https://www.paypal.com/ncp/payment/664ZL5XX3TKMG), `for  us  to keep the  servers running.`
+__Remember__:  `to support` [![Buy Me a Coffee](https://www.buymeacoffee.com/assets/img/custom_images/orange_img.png)](https://buymeacoffee.com/wambugu), `for  us  to keep the  servers running.`
 # Fetch your resume  from resume.io 
 Could you create and design your resume in resume.io? 
 
